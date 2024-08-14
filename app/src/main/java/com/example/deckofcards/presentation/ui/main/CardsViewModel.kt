@@ -26,7 +26,7 @@ class CardsViewModel(
         shuffleDeck(1)
     }
 
-    private fun shuffleDeck(deckCount: Int) {
+    fun shuffleDeck(deckCount: Int) {
         _deckId.value = UiState.Loading
         viewModelScope.launch {
             try {
@@ -44,7 +44,7 @@ class CardsViewModel(
         }
     }
 
-    private fun drawCards(
+    fun drawCards(
         deckId: String,
         count: Int,
     ) {
