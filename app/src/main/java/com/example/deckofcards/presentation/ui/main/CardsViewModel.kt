@@ -8,6 +8,7 @@ import com.example.deckofcards.data.model.Card
 import com.example.deckofcards.domain.usecase.DrawCardsUseCase
 import com.example.deckofcards.domain.usecase.ReshuffleDeckUseCase
 import com.example.deckofcards.domain.usecase.ShuffleDeckUseCase
+import com.example.deckofcards.presentation.ui.utils.UiState
 import kotlinx.coroutines.launch
 
 class CardsViewModel(
@@ -15,22 +16,30 @@ class CardsViewModel(
     private val drawCardsUseCase: DrawCardsUseCase,
     private val reshuffleDeckUseCase: ReshuffleDeckUseCase,
 ) : ViewModel() {
-    private val _cards = MutableLiveData<List<Card>>()
-    val cards: LiveData<List<Card>> = _cards
+    private val _cards = MutableLiveData<UiState<List<Card>>>()
+    val cards: LiveData<UiState<List<Card>>> = _cards
 
-    private val _deckId = MutableLiveData<String>()
-    val deckId: LiveData<String> = _deckId
+    private val _deckId = MutableLiveData<UiState<String>>()
+    val deckId: LiveData<UiState<String>> = _deckId
 
     init {
         shuffleDeck(1)
     }
 
     private fun shuffleDeck(deckCount: Int) {
+        _deckId.value = UiState.Loading
         viewModelScope.launch {
-            val response = shuffleDeckUseCase.execute(deckCount)
-            if (response.isSuccessful) {
-                _deckId.value = response.body()?.deck_id
-                drawCards(response.body()?.deck_id ?: "", 2)
+            try {
+                val response = shuffleDeckUseCase.execute(deckCount)
+                if (response.isSuccessful) {
+                    val deckId = response.body()?.deck_id.orEmpty()
+                    _deckId.value = UiState.Success(deckId)
+                    drawCards(deckId, 2)
+                } else {
+                    _deckId.value = UiState.Error("Failed to shuffle deck")
+                }
+            } catch (e: Exception) {
+                _deckId.value = UiState.Error("Exception occurred", e)
             }
         }
     }
@@ -39,20 +48,35 @@ class CardsViewModel(
         deckId: String,
         count: Int,
     ) {
+        _cards.value = UiState.Loading
         viewModelScope.launch {
-            val response = drawCardsUseCase.execute(deckId, count)
-            if (response.isSuccessful) {
-                _cards.value = response.body()?.cards
+            try {
+                val response = drawCardsUseCase.execute(deckId, count)
+                if (response.isSuccessful) {
+                    _cards.value = UiState.Success(response.body()?.cards.orEmpty())
+                } else {
+                    _cards.value = UiState.Error("Failed to draw cards")
+                }
+            } catch (e: Exception) {
+                _cards.value = UiState.Error("Exception occurred", e)
             }
         }
     }
 
     fun reshuffleDeck(deckId: String) {
+        _deckId.value = UiState.Loading
         viewModelScope.launch {
-            val response = reshuffleDeckUseCase.execute(deckId)
-            if (response.isSuccessful) {
-                _deckId.value = response.body()?.deck_id
-                drawCards(deckId, 2)
+            try {
+                val response = reshuffleDeckUseCase.execute(deckId)
+                if (response.isSuccessful) {
+                    val newDeckId = response.body()?.deck_id.orEmpty()
+                    _deckId.value = UiState.Success(newDeckId)
+                    drawCards(newDeckId, 2)
+                } else {
+                    _deckId.value = UiState.Error("Failed to reshuffle deck")
+                }
+            } catch (e: Exception) {
+                _deckId.value = UiState.Error("Exception occurred", e)
             }
         }
     }
