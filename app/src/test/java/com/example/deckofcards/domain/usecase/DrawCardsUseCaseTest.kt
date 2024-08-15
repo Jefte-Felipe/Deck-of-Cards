@@ -24,7 +24,6 @@ class DrawCardsUseCaseTest {
     @Test
     fun `execute should return success response when repository returns success`() =
         runBlocking {
-            // Arrange
             val deckId = "deck_id"
             val count = 2
             val cards = listOf(Card("6H", "https://deckofcardsapi.com/static/img/6H.png", "6", "HEARTS"))
